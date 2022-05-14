@@ -8,7 +8,7 @@ import time
 
 def create_driver():
     """
-    create driver and load espn fantasy football page
+    Create driver and load espn fantasy football page
     """
     driver = webdriver.Chrome(ChromeDriverManager().install())
     driver.get("https://fantasy.espn.com/football")
@@ -18,6 +18,7 @@ def create_driver():
 
 def navigate_to_scoring_leaders(driver):
     """
+    Find scoring leaders tab from espn fantasy football home page
     """
     navs = driver.find_element(By.CLASS_NAME, 'global-nav-container').find_elements(By.CLASS_NAME, 'sub')
 
@@ -29,16 +30,15 @@ def navigate_to_scoring_leaders(driver):
             break
 
 def collect_table_metadata(driver):
-
-    # get column names
+    """
+    Get columns and table length
+    """
     header_elements = driver.find_elements(By.CLASS_NAME, "header")
     columns = [element.text for element in header_elements]
 
-    # find num players in table
     player_elements = driver.find_elements(By.CLASS_NAME, "player-info")
     table_length = len(player_elements)
 
-    # collect data in dictionary
     metadata = {
         "columns": columns,
         "table_length": table_length
@@ -48,8 +48,9 @@ def collect_table_metadata(driver):
 
 
 def collect_table_data(driver):
-
-    # access data from table containing player data
+    """
+    Collect text from all sub elements of table
+    """
     table = driver.find_elements(By.CLASS_NAME, "Table__odd")
 
     table_data = []
@@ -63,7 +64,10 @@ def collect_table_data(driver):
 
 
 def next_page(driver):
-
+    """
+    Find next page button, return false if we are on the last page, otherwise
+    click the button and return true
+    """
     button = driver.find_element(By.CLASS_NAME, "Pagination__Button--next")
 
     if button.get_attribute('aria-disabled') == "true":
@@ -74,12 +78,12 @@ def next_page(driver):
 
 
 def exe():
-
-    # navigate to espn ff scoring leaders page
+    """
+    Execute data collection processes for 2022 espn fantasy football data
+    Data containing season level statistics for all players
+    """
     driver = create_driver()
     navigate_to_scoring_leaders(driver)
-
-    # get columns and table length
     metadata = collect_table_metadata(driver)
 
     player_data = []
