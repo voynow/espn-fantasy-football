@@ -35,6 +35,8 @@ def collect_table_metadata(driver):
     """
     header_elements = driver.find_elements(By.CLASS_NAME, "header")
     columns = [element.text for element in header_elements]
+    if 'Scoring Leaders' in columns:
+        columns.remove('Scoring Leaders')
 
     player_elements = driver.find_elements(By.CLASS_NAME, "player-info")
     table_length = len(player_elements)
