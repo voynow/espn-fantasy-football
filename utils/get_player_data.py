@@ -1,9 +1,11 @@
+from locale import normalize
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
 import time
+import pandas as pd
 
 
 def create_driver():
@@ -79,9 +81,9 @@ def next_page(driver):
     return True
 
 
-def exe():
+def extract():
     """
-    Execute data collection processes for 2022 espn fantasy football data
+    Execute data collection processes for 2021/2022 espn fantasy football data
     Data containing season level statistics for all players
     """
     driver = create_driver()
@@ -95,3 +97,40 @@ def exe():
         next_page_exists = next_page(driver)
         
     return player_data, metadata
+
+
+def transform(raw_data, metadata):
+    """
+    Data transformation from raw to structured
+    """
+    data_len = metadata['table_length']
+    master_dataset = []
+
+    # iterate over pages
+    for page in raw_data:
+
+        # collect all data associated with each player
+        page_data = [[] for i in range(data_len)]
+        for i, data_set in enumerate(page):
+            for data in data_set:
+                page_data[i % data_len].append(data)
+        
+        # remove empty data and health status
+        for player in page_data:
+            if len(player) == 0:
+                continue
+            if len(player) == 20:
+                player.pop(1)
+            master_dataset.append(player)
+
+    return master_dataset
+
+
+def etl():
+    """
+    Pipeline to facilitate extract, tranform, load
+    """
+    player_data, metadata = extract()
+    clean_data = transform(player_data, metadata)
+
+    return pd.DataFrame(clean_data, columns=metadata['columns'])
