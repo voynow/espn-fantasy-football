@@ -3,6 +3,9 @@ from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
 
 import time
 import pandas as pd
@@ -31,40 +34,15 @@ def navigate_to_scoring_leaders(driver):
             time.sleep(5)
             break
 
-def collect_table_metadata(driver):
-    """
-    Get columns and table length
-    """
-    header_elements = driver.find_elements(By.CLASS_NAME, "header")
-    columns = [element.text for element in header_elements]
-    if 'Scoring Leaders' in columns:
-        columns.remove('Scoring Leaders')
 
-    player_elements = driver.find_elements(By.CLASS_NAME, "player-info")
-    table_length = len(player_elements)
+def get_player_links(driver):
 
-    metadata = {
-        "columns": columns,
-        "table_length": table_length
-    }
-
-    return metadata
-
-
-def collect_table_data(driver):
-    """
-    Collect text from all sub elements of table
-    """
-    table = driver.find_elements(By.CLASS_NAME, "Table__odd")
-
-    table_data = []
-    for row in table:
-        try:
-            table_data.append(row.text.split("\n"))
-        except:
-            table_data.append([])
-
-    return table_data
+    player_links = driver.find_elements(By.CLASS_NAME, "link")
+    player_links[0].click()
+    player_card = driver.find_element(By.CLASS_NAME, "player-card-center")
+    # player_card = WebDriverWait(driver, 2).until(EC.presence_of_element_located((By.CLASS_NAME, "player-card-center")))
+    # player_card = player_links[0].find_element(By.CLASS_NAME, "player-card-center")
+    print(player_card.text)
 
 
 def next_page(driver):
@@ -88,49 +66,12 @@ def extract():
     """
     driver = create_driver()
     navigate_to_scoring_leaders(driver)
-    metadata = collect_table_metadata(driver)
 
     player_data = []
     next_page_exists = True
     while next_page_exists:
-        player_data.append(collect_table_data(driver))
-        next_page_exists = next_page(driver)
+        get_player_links(driver)
+        1/0
+        # next_page_exists = next_page(driver)
         
-    return player_data, metadata
-
-
-def transform(raw_data, metadata):
-    """
-    Data transformation from raw to structured
-    """
-    data_len = metadata['table_length']
-    master_dataset = []
-
-    # iterate over pages
-    for page in raw_data:
-
-        # collect all data associated with each player
-        page_data = [[] for i in range(data_len)]
-        for i, data_set in enumerate(page):
-            for data in data_set:
-                page_data[i % data_len].append(data)
-        
-        # remove empty data and health status
-        for player in page_data:
-            if len(player) == 0:
-                continue
-            if len(player) == 20:
-                player.pop(1)
-            master_dataset.append(player)
-
-    return master_dataset
-
-
-def etl():
-    """
-    Pipeline to facilitate extract, tranform, load
-    """
-    player_data, metadata = extract()
-    clean_data = transform(player_data, metadata)
-
-    return pd.DataFrame(clean_data, columns=metadata['columns'])
+    return player_data
