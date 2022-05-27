@@ -5,9 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 
-
 import time
-import pandas as pd
 
 
 def create_driver():
@@ -40,9 +38,12 @@ def get_player_links(driver):
 
     data_collection = []
     for link in player_links:
-
         link.click()
-        player_card = WebDriverWait(driver, 2).until(EC.presence_of_element_located((By.CLASS_NAME, "player-card-center")))
+        try:
+            player_card = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "player-card-center")))
+        except:
+            print(f"ERROR: skipping {link.text} - could not find class_name=player-card-center in html")
+            continue
         player_card.find_element(By.CLASS_NAME, "header_link").click()
 
         new_window = driver.window_handles[-1]
@@ -54,6 +55,7 @@ def get_player_links(driver):
             if element.text == "Game Log":
                 element.click()
                 break
+        time.sleep(1)
 
         player_data_2021 = []
         data_tables = driver.find_elements(By.CLASS_NAME, "mb4")
@@ -61,7 +63,6 @@ def get_player_links(driver):
             player_data_2021.append(table.text)
         data_collection.append(player_data_2021)
 
-        # driver.send_keys(Keys.ARROW_DOWN + "w")
         driver.close()
         driver.switch_to.window(old_window)
         driver.find_element(By.CLASS_NAME, "lightbox__closebtn").click()
@@ -91,10 +92,12 @@ def extract():
     driver = create_driver()
     navigate_to_scoring_leaders(driver)
 
-    player_data = []
-    next_page_exists = True
-    while next_page_exists:
-        get_player_links(driver)
-        next_page_exists = next_page(driver)
+    # player_data = []
+    # next_page_exists = True
+    # while next_page_exists:
+    #     player_data.append(get_player_links(driver))
+    #     next_page_exists = next_page(driver)
         
-    return player_data
+    # return player_data
+
+    return get_player_links(driver)
