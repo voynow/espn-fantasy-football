@@ -36,18 +36,25 @@ def get_player_links(driver):
 
     player_links = driver.find_elements(By.CLASS_NAME, "link")
 
+    base_window = None
     data_collection = []
     for link in player_links:
+        print(link.text)
+        print(f"Link: {link}")
         link.click()
         try:
             player_card = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "player-card-center")))
+            print(f"Player card: {player_card}")
         except:
-            print(f"ERROR: skipping {link.text} - could not find class_name=player-card-center in html")
+            print(f"ERROR: skipping {link.text} - could not find class_name=player-card-center")
             continue
         player_card.find_element(By.CLASS_NAME, "header_link").click()
 
         new_window = driver.window_handles[-1]
-        old_window = driver.window_handles[-2]
+        print(f"New window: {new_window}")
+        if base_window is None:
+            base_window = driver.window_handles[-2]
+        print(f"Base window: {base_window}")
         driver.switch_to.window(new_window)
 
         nav_elements = driver.find_elements(By.CLASS_NAME, "Nav__Text")
@@ -59,13 +66,16 @@ def get_player_links(driver):
 
         player_data_2021 = []
         data_tables = driver.find_elements(By.CLASS_NAME, "mb4")
-        for table in data_tables:
+        print("Found the following data tables:")
+        for i, table in enumerate(data_tables):
+            print(f"{i} {table}")
             player_data_2021.append(table.text)
         data_collection.append(player_data_2021)
 
         driver.close()
-        driver.switch_to.window(old_window)
+        driver.switch_to.window(base_window)
         driver.find_element(By.CLASS_NAME, "lightbox__closebtn").click()
+        print("\n")
 
     return data_collection
 
