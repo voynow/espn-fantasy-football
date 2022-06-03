@@ -14,26 +14,27 @@ def create_driver():
     """
     driver = webdriver.Chrome(ChromeDriverManager().install())
     driver.get("https://fantasy.espn.com/football/leaders")
-    time.sleep(1)
 
     return driver
 
 
 def get_player_links(driver):
 
+    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "link")))
     player_links = driver.find_elements(By.CLASS_NAME, "link")
 
     base_window = None
     data_collection = []
     for link in player_links:
-        print(link.text)
+        player_name = link.text
+        print(player_name)
         print(f"Link: {link}")
         link.click()
         try:
             player_card = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "player-card-center")))
             print(f"Player card: {player_card}")
         except:
-            print(f"ERROR: skipping {link.text} - could not find class_name=player-card-center")
+            print(f"ERROR: skipping {player_name} - could not find class_name=player-card-center")
             continue
         player_card.find_element(By.CLASS_NAME, "header_link").click()
 
@@ -51,13 +52,13 @@ def get_player_links(driver):
                 break
         time.sleep(.25)
 
-        player_data_2021 = []
+        game_level_data = [player_name]
         data_tables = driver.find_elements(By.CLASS_NAME, "mb4")
         print("Found the following data tables:")
         for i, table in enumerate(data_tables):
             print(f"{i} {table}")
-            player_data_2021.append(table.text)
-        data_collection.append(player_data_2021)
+            game_level_data.append(table.text)
+        data_collection.append(game_level_data)
 
         driver.close()
         driver.switch_to.window(base_window)
