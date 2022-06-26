@@ -19,7 +19,9 @@ def create_driver():
 
 
 def get_player_links(driver):
-
+    """
+    Find link objects for all players on given page
+    """
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "link")))
     player_links = driver.find_elements(By.CLASS_NAME, "link")
 
@@ -27,7 +29,9 @@ def get_player_links(driver):
 
 
 def access_player_card(driver, link):
-
+    """
+    Open player card and click on player's "complete stats"
+    """
     player_name = link.text
     print(player_name)
     print(f"Link: {link}")
@@ -43,7 +47,9 @@ def access_player_card(driver, link):
 
 
 def switch_to_new_window(driver):
-
+    """
+    Update driver window to most recent window
+    """
     new_window = driver.window_handles[-1]
     print(f"New window: {new_window}")
     if base_window is None:
@@ -55,7 +61,9 @@ def switch_to_new_window(driver):
 
 
 def access_game_log(driver):
-
+    """
+    Within player statistics page -> click game log
+    """
     nav_elements = driver.find_elements(By.CLASS_NAME, "Nav__Text")
     for element in nav_elements:
         if element.text == "Game Log":
@@ -67,7 +75,9 @@ def access_game_log(driver):
 
 
 def collect_data(driver, player_name):
-
+    """
+    Collect text returned from all table elements
+    """
     game_level_data = [player_name]
     data_tables = driver.find_elements(By.CLASS_NAME, "mb4")
     print("Found the following data tables:")
@@ -78,7 +88,9 @@ def collect_data(driver, player_name):
 
 
 def switch_to_base_window(driver, base_window):
-
+    """
+    Update driver window to original window
+    """
     driver.close()
     driver.switch_to.window(base_window)
 
@@ -105,7 +117,6 @@ def extract():
     Data containing season level statistics for all players
     """
     driver = create_driver()
-    
     player_links = get_player_links(driver)
 
     base_window = None
@@ -121,7 +132,6 @@ def extract():
         player_data = collect_data(driver, player_name)
         data_collection.append(player_data)
         driver = switch_to_base_window(driver, base_window)
-
         driver.find_element(By.CLASS_NAME, "lightbox__closebtn").click()
 
     return data_collection
