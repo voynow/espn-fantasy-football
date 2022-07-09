@@ -19,7 +19,7 @@ def create_driver(link):
     return driver
 
 
-def get_player_links(driver):
+def get_players(driver):
     """
     Find link objects for all players on given page
     """
@@ -33,8 +33,9 @@ def get_player_metadata(driver, link):
     """
     Open player card and click on player's "complete stats"
     """
+    print(f"Link: {link}")
     player_name = link.text
-    print(f"{player_name}/nLink: {link}")
+    print(f"player_name: {player_name}")
     link.click()
 
     try:
@@ -51,23 +52,6 @@ def get_player_metadata(driver, link):
     return player_name, complete_stats_link
 
 
-def access_game_log(driver):
-    """
-    Within player statistics page -> click game log
-    """
-    nav_elements = driver.find_elements(By.CLASS_NAME, "Nav__Text")
-    for element in nav_elements:
-        if element.text == "Game Log":
-            try:
-                element.click()
-                break
-            except selenium.common.exceptions.WebDriverException:
-                return None
-    time.sleep(.25)
-
-    return driver
-
-
 def collect_data(driver, player_name):
     """
     Collect text returned from all table elements
@@ -79,6 +63,28 @@ def collect_data(driver, player_name):
         print(f"{i} {table}")
         game_level_data.append(table.text)
     return game_level_data
+
+
+def get_links_player_stats(driver, players):
+    """
+    
+    """
+    player_link_map = {}
+    for player in players:
+        
+        player_name, link = get_player_metadata(driver, player)
+        if link:
+            link = link.replace("stats", "gamelog")
+        player_link_map[player_name] = link
+        try:
+            WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "lightbox__closebtn"))).click()
+        except WebDriverException:
+            driver.refresh()
+
+    # remove irregular data
+    player_link_map = {k: v for k, v in player_link_map.items() if k}
+
+    return player_link_map
 
 
 def next_page(driver):
@@ -97,31 +103,24 @@ def next_page(driver):
 
 def extract():
     """
-    Execute data collection processes for 2021/2022 espn fantasy football data
-    Data containing season level statistics for all players
+
     """
     espn_ff_scoring_laders_link = "https://fantasy.espn.com/football/leaders"
     driver = create_driver(espn_ff_scoring_laders_link)
-    player_links = get_player_links(driver)
+    players = get_players(driver)
+    player_link_map = get_links_player_stats(driver, players)
 
     missing_players = []
     data_collection = []
-    for player_link in player_links:
-        
-        player_name, complete_stats_link = get_player_metadata(driver, player_link)
-        if not complete_stats_link:
-            missing_players.append(player_name)
+    for player_name, link in player_link_map.items():
 
-        player_driver = create_driver(complete_stats_link)
-        player_driver = access_game_log(player_driver)
-        if player_driver:
+        if link:
+            player_driver = create_driver(link)
             player_data = collect_data(player_driver, player_name)
             data_collection.append(player_data)
+            player_driver.quit()
         else:
             missing_players.append(player_name)
-
-        player_driver.quit()
-        driver.find_element(By.CLASS_NAME, "lightbox__closebtn").click()
 
     return data_collection, missing_players
 
