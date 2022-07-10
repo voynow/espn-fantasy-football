@@ -40,18 +40,6 @@ def get_first_player(driver):
     return first_player
 
 
-def get_stats_link(driver):
-    """
-    Open player card and click on player's "complete stats"
-    """
-    # player_card = wait_for_element(driver, By.CLASS_NAME, "player-card-center")
-    # complete_stats_obj = player_card.find_element(By.CLASS_NAME, "header_link")
-    complete_stats_obj = driver.find_element(By.CLASS_NAME, "header_link")
-    complete_stats_link = complete_stats_obj.get_attribute('href')
-
-    return complete_stats_link
-
-
 def collect_data(driver, player_name):
     """
     Collect text returned from all table elements
@@ -64,10 +52,14 @@ def collect_data(driver, player_name):
     return game_level_data
 
 
-def get_links_player_stats(driver):
+def get_link_map(web_link):
     """
     
     """
+    driver = create_driver(web_link)
+    get_first_player(driver).click()
+    wait_for_element(driver, By.CLASS_NAME, "player-card-center")
+    
     player_link_map = {}
     next_player_exists = True
     while next_player_exists:
@@ -84,15 +76,6 @@ def get_links_player_stats(driver):
             next_player.click()
         except ElementNotInteractableException:
             next_player_exists = False 
-
-        # try:
-        #     closebtn = wait_for_element(driver, By.CLASS_NAME, "lightbox__closebtn")
-        #     closebtn.click()
-        #     print(f"Closing player card: {player_name}")
-        # except WebDriverException:
-        #     print("Error: Refrshing")
-        #     # driver.refresh()
-        #     continue
 
     return player_link_map
 
@@ -111,22 +94,21 @@ def next_page(driver):
     return True
 
 
-def extract():
+def extract(create_new_link_map=False):
     """
 
     """
     espn_ff_scoring_laders_link = "https://fantasy.espn.com/football/leaders"
-    player_link_map_loc = 'data/player_link_map.json'
+    player_link_map_loc = 'data/json/player_link_map.json'
 
-    driver = create_driver(espn_ff_scoring_laders_link)
-    get_first_player(driver).click()
-    wait_for_element(driver, By.CLASS_NAME, "player-card-center")
-    player_link_map = get_links_player_stats(driver)
+    if create_new_link_map:
+        player_link_map = get_link_map(espn_ff_scoring_laders_link)
 
-    with open(player_link_map_loc, "w") as f:
-        json.dump(player_link_map, f, indent=4)
-
-    6/0
+        with open(player_link_map_loc, "w") as f:
+            json.dump(player_link_map, f, indent=4)
+    else:
+        with open(player_link_map_loc) as f:
+            player_link_map = json.load(f)
 
     data_collection = []
     for player_name, link in player_link_map.items():
