@@ -164,7 +164,7 @@ def transform_game_stats(data_dict):
 
 def transform():
 
-    path_to_pkl = 'data/game_level.pkl'
+    path_to_pkl = 'data/raw/raw_data.pkl'
 
     player_data_dict = load_to_dict(path_to_pkl)
     player_data_dict = transform_tables(player_data_dict)

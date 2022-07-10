@@ -4,9 +4,9 @@ from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import ElementNotInteractableException
 
-import time
+import json
 
 
 def create_driver(link):
@@ -18,38 +18,26 @@ def create_driver(link):
 
     return driver
 
-
-def get_players(driver):
+def wait_for_element(driver, by, html, wait_duration=5):
     """
-    Find link objects for all players on given page
+    find element with web driver wait, defult 5 seconds
     """
-    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "link")))
-    player_links = driver.find_elements(By.CLASS_NAME, "link")
+    condition = EC.presence_of_element_located((by, html))
+    element = WebDriverWait(driver, wait_duration).until(condition)
 
-    return player_links
+    return element
 
 
-def get_player_metadata(driver, link):
+def get_first_player(driver):
     """
-    Open player card and click on player's "complete stats"
+    Find link object for first player on given page
     """
-    print(f"Link: {link}")
-    player_name = link.text
-    print(f"player_name: {player_name}")
-    link.click()
+    wait_for_element(driver, By.CLASS_NAME, "Table__TBODY", wait_duration=15)
+    player_links = driver.find_elements(By.CLASS_NAME, "link ")
+    clean_player_links = [player_link for player_link in player_links if player_link.text]
+    first_player = clean_player_links[0]
 
-    try:
-        player_card = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "player-card-center")))
-        print(f"Player card: {player_card}")
-    except BaseException as e:
-        print(e)
-        print(f"ERROR cannot find {player_name}'s player card")
-        return player_name, None
-
-    complete_stats_obj = player_card.find_element(By.CLASS_NAME, "header_link")
-    complete_stats_link = complete_stats_obj.get_attribute('href')
-
-    return player_name, complete_stats_link
+    return first_player
 
 
 def collect_data(driver, player_name):
@@ -58,31 +46,36 @@ def collect_data(driver, player_name):
     """
     game_level_data = [player_name]
     data_tables = driver.find_elements(By.CLASS_NAME, "mb4")
-    print("Found the following data tables:")
     for i, table in enumerate(data_tables):
         print(f"{i} {table}")
         game_level_data.append(table.text)
     return game_level_data
 
 
-def get_links_player_stats(driver, players):
+def get_link_map(web_link):
     """
     
     """
+    driver = create_driver(web_link)
+    get_first_player(driver).click()
+    wait_for_element(driver, By.CLASS_NAME, "player-card-center")
+    
     player_link_map = {}
-    for player in players:
-        
-        player_name, link = get_player_metadata(driver, player)
-        if link:
-            link = link.replace("stats", "gamelog")
-        player_link_map[player_name] = link
-        try:
-            WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "lightbox__closebtn"))).click()
-        except WebDriverException:
-            driver.refresh()
+    next_player_exists = True
+    while next_player_exists:
+        player_name_element = driver.find_element(By.CLASS_NAME, "player-name")
+        player_name = player_name_element.text.replace("\n", " ")
 
-    # remove irregular data
-    player_link_map = {k: v for k, v in player_link_map.items() if k}
+        complete_stats_obj = driver.find_element(By.CLASS_NAME, "header_link")
+        link_stats = complete_stats_obj.get_attribute('href')
+        link_gamelog = link_stats.replace("stats", "gamelog")
+        player_link_map[player_name] = link_gamelog
+        
+        try:
+            next_player = driver.find_element(By.CLASS_NAME, "right-box")
+            next_player.click()
+        except ElementNotInteractableException:
+            next_player_exists = False 
 
     return player_link_map
 
@@ -101,16 +94,22 @@ def next_page(driver):
     return True
 
 
-def extract():
+def extract(create_new_link_map=False):
     """
 
     """
     espn_ff_scoring_laders_link = "https://fantasy.espn.com/football/leaders"
-    driver = create_driver(espn_ff_scoring_laders_link)
-    players = get_players(driver)
-    player_link_map = get_links_player_stats(driver, players)
+    player_link_map_loc = 'data/json/player_link_map.json'
 
-    missing_players = []
+    if create_new_link_map:
+        player_link_map = get_link_map(espn_ff_scoring_laders_link)
+
+        with open(player_link_map_loc, "w") as f:
+            json.dump(player_link_map, f, indent=4)
+    else:
+        with open(player_link_map_loc) as f:
+            player_link_map = json.load(f)
+
     data_collection = []
     for player_name, link in player_link_map.items():
 
@@ -119,10 +118,8 @@ def extract():
             player_data = collect_data(player_driver, player_name)
             data_collection.append(player_data)
             player_driver.quit()
-        else:
-            missing_players.append(player_name)
 
-    return data_collection, missing_players
+    return data_collection
 
 
     # player_data = []
